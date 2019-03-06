@@ -8,14 +8,15 @@ import proxy from 'http-proxy-middleware'
 import {nocoConfig, build, cwd} from './getArgs'
 import UglifyJsPlugin from 'uglifyjs-webpack-plugin'
 import fs from 'fs'
+import {getValidPort} from './utils'
 
 var dist = cwd + (nocoConfig.dist || '/dist/')
 
 
 function getWebpackConfig(productionMode, type, postfix) {
-    var entry = cwd + '/src/' + (type) + ((type.indexOf('.js')|| type.indexOf('.vue'))?'':'/index.js')
+    var entry = cwd + '/src/' + (type) + ((type.indexOf('.js') || type.indexOf('.vue')) ? '' : '/index.js')
     var config = {
-        context: cwd + '/src/'+postfix,
+        context: cwd + '/src/' + postfix,
         entry: {
             [postfix]: entry,
         },
@@ -68,7 +69,7 @@ gulp.task('webpack_prod', function (cb) {
 gulp.task('webpack_dev', function (cb) {
     cb()
     return gulp
-        .src([__dirname+'/emptyEntry.js'])
+        .src([__dirname + '/emptyEntry.js'])
         .pipe(named())
         .pipe(webpackGulp(getWebpackConfig(false, 'impl', 'index')))
         .pipe(gulp.dest(dist))
@@ -127,22 +128,22 @@ gulp.task('changelog', function (cb) {
 gulp.task('example', function (cb) {
     var readDir = null
 
-    try{
-        readDir = fs.readdirSync(cwd+'/src/example')
+    try {
+        readDir = fs.readdirSync(cwd + '/src/example')
 
         readDir.forEach(function (it) {
             gulp
                 .src([__dirname + '/emptyEntry.js'])
                 .pipe(named())
-                .pipe(webpackGulp(getWebpackConfig(false, 'example/'+it+'/config.js', 'example/'+it+'/config')))
+                .pipe(webpackGulp(getWebpackConfig(false, 'example/' + it + '/config.js', 'example/' + it + '/config')))
                 .pipe(gulp.dest(dist))
             gulp
                 .src([__dirname + '/emptyEntry.js'])
                 .pipe(named())
-                .pipe(webpackGulp(getWebpackConfig(false, 'example/'+it+'/index.js', 'example/'+it+'/index')))
+                .pipe(webpackGulp(getWebpackConfig(false, 'example/' + it + '/index.js', 'example/' + it + '/index')))
                 .pipe(gulp.dest(dist))
         })
-    }catch (e) {
+    } catch (e) {
 
     }
 
@@ -166,7 +167,7 @@ gulp.task('test_action', function (cb) {
 
     var config = {
         context: cwd + '/src',
-        entry: cwd + '/src/test/'+type+'/index.js',
+        entry: cwd + '/src/test/' + type + '/index.js',
         resolve: {
             extensions: ['.js', '.vue']
         },
@@ -182,7 +183,7 @@ gulp.task('test_action', function (cb) {
             rules: loaders,
         },
 
-        watch:true,
+        watch: true,
 
         plugins: plugins,
 
@@ -197,32 +198,35 @@ gulp.task('test_action', function (cb) {
 })
 
 gulp.task('connect', () => {
-    var proxyConfig = nocoConfig.proxy
+        var proxyConfig = nocoConfig.proxy || []
 
-    gulpConnect.server({
-        host: '0.0.0.0',
-        root: dist,
-        port: nocoConfig.port || '8080',
-        livereload: true,
-        middleware: function (connect, opt) {
-            let proxys = []
+        getValidPort(8000).then(function (port) {
+            gulpConnect.server({
+                host: '0.0.0.0',
+                root: dist,
+                port: nocoConfig.port || port || '8080',
+                livereload: true,
+                middleware: function (connect, opt) {
+                    let proxys = []
 
-            if (proxy) {
-                for (let i = 0; i < proxyConfig.length; i++) {
-                    proxys.push(proxy(proxyConfig[i].source, {
-                        target: proxyConfig[i].target,
-                        changeOrigin: true,
-                        secure: false,
-                        headers: {
-                            Connection: 'keep-alive'
+                    if (proxy) {
+                        for (let i = 0; i < proxyConfig.length; i++) {
+                            proxys.push(proxy(proxyConfig[i].source, {
+                                target: proxyConfig[i].target,
+                                changeOrigin: true,
+                                secure: false,
+                                headers: {
+                                    Connection: 'keep-alive'
+                                }
+                            }))
                         }
-                    }))
-                }
-            }
+                    }
 
-            return proxys
-        }
-    })
+                    return proxys
+                }
+            })
+        })
+
     }
 )
 

@@ -1,4 +1,12 @@
-export let nocoConfig = require(__dirname+'/../../../noco.config.js').default
+import fs from 'fs'
+
+let nocoConfigPath = __dirname+'/../../../noco.config.js'
+let config = {}
+if(fs.existsSync(nocoConfigPath)){
+    config = require(nocoConfigPath).default
+}
+
+export let nocoConfig = config
 
 export default function getArg(key) {
     var index = process.argv.indexOf(key)
